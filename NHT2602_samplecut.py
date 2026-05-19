@@ -4,6 +4,7 @@
 import argparse
 import pandas as pd
 import numpy as np
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -55,6 +56,18 @@ def default_output_path(prefix):
     return unique_output_path(f"{prefix}_{timestamp}.csv")
 
 
+def find_duplicate_paths(paths):
+    seen = {}
+    duplicates = []
+    for path in paths:
+        resolved = Path(path).resolve()
+        if resolved in seen:
+            duplicates.append((seen[resolved], path))
+        else:
+            seen[resolved] = path
+    return duplicates
+
+
 # =========================
 # メイン処理
 # =========================
@@ -68,6 +81,13 @@ def main():
     parser.add_argument("--seed", type=int, default=None,
                         help="乱数seed（未指定なら毎回ランダム）")
     args = parser.parse_args()
+    duplicate_wari = find_duplicate_paths(args.wari)
+    if duplicate_wari:
+        print("注意: 同じ WARI ファイルが複数回指定されています。処理を中止します。")
+        for first, duplicate in duplicate_wari:
+            print(f"  {first} / {duplicate}")
+        sys.exit(1)
+
     out_path = unique_output_path(args.out) if args.out else default_output_path("out")
     shortage_path = unique_output_path(args.shortage) if args.shortage else default_output_path("shortage")
 
